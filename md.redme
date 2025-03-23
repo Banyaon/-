@@ -1,0 +1,621 @@
+<dev>
+
+  
+  
+  Mit : Sarut Limpajirawong ✅️💌🤬🦭🆘️✨️❔️🛒👾https://tr4200812.github.io/Android/ad-click-api/com.duckduckgo.adclick.api/index.html#1164838308%2FClasslikes%2F1598326845
+  https://docs.github.com/en/copilot/using-github-copilot/using-extensions-to-integrate-external-tools-with-copilot-chat
+  trigger:
+  paths:
+    include:
+    - libs/storage/Tsavorite/*
+ 
+variables:
+  solution: 'Garnet.sln'
+  RunAzureTests: 'yes'
+
+jobs:
+- job: 'csharpWindows'
+  pool:
+    vmImage: windows-latest
+  displayName: 'C# (Windows)'
+  timeoutInMinutes: 125
+
+  strategy:
+    maxParallel: 2
+    matrix:
+      AnyCPU-Debug:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Debug'
+      AnyCPU-Release:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Release'
+
+  steps:
+  - task: UseDotNet@2
+    displayName: Use .NET 8.0
+    inputs:
+      packageType: 'sdk'
+      version: '8.0.x'
+
+  - task: UseDotNet@2
+    displayName: Use .NET 9.0
+    inputs:
+      packageType: 'sdk'
+      version: '9.0.x'
+
+  - task: NodeTool@0
+    displayName: Node Tool
+    inputs:
+      versionSpec: 14.x
+
+  - script : npm install -g azurite
+    displayName: Install Azurite
+
+  - script : start /B azurite
+    displayName: Start Azurite
+
+  - task: NuGetAuthenticate@1
+    displayName: Nuget Authenticate
+
+  - task: NuGetToolInstaller@1
+    displayName: Nuget Tool Installer
+    inputs:
+      versionspec: '*'
+      checkLatest: true
+
+  - script: nuget restore
+    displayName: Nuget Restore
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build Tsavorite binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Tsavorite.test.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Tsavorite on $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Tsavorite.test.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build Garnet Cluster binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Garnet.test.cluster.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Garnet Cluster on $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Garnet.test.cluster.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build Garnet binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Garnet.test.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Garnet on $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Garnet.test.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+      
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    inputs:
+      testRunner: VSTest
+      testResultsFiles: '**/*.trx'
+      searchFolder: '$(Agent.TempDirectory)'
+
+- job: 'csharpLinux'
+  pool:
+    vmImage: ubuntu-latest
+  displayName: 'C# (Linux)'
+  timeoutInMinutes: 125
+
+  strategy:
+    maxParallel: 2
+    matrix:
+      AnyCPU-Debug:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Debug'
+      AnyCPU-Release:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Release'
+
+  steps:
+  - task: UseDotNet@2
+    displayName: Use .NET 8.0
+    inputs:
+      packageType: 'sdk'
+      version: '8.0.x'
+
+  - task: UseDotNet@2
+    displayName: Use .NET 9.0
+    inputs:
+      packageType: 'sdk'
+      version: '9.0.x'
+
+  - bash: |
+      sudo npm install -g azurite
+      sudo mkdir azurite
+      sudo azurite --silent --location azurite --debug azurite\debug.log &
+    displayName: 'Install and Run Azurite'
+      
+  - task: NuGetAuthenticate@1
+    displayName: Nuget Authenticate
+
+  - task: UseDotNet@2 # Optional if the .NET Core SDK is already installed
+    displayName: Use .NET
+
+  - script: dotnet restore
+    displayName: .NET Restore
+
+  - task: DotNetCoreCLI@2
+    displayName: '.NET Core build Tsavorite binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Tsavorite.test.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Tsavorite on $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Tsavorite.test.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+      
+  - task: DotNetCoreCLI@2
+    displayName: '.NET Core build Garnet binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Garnet.test.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Garnet $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Garnet.test.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+      publishTestResults: true
+      
+  - task: DotNetCoreCLI@2
+    displayName: '.NET Core build Cluster binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Garnet.test.cluster.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Garnet Cluster $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Garnet.test.cluster.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    inputs:
+      testResultsFormat: 'VSTest'
+      testResultsFiles: '*.trx'
+      searchFolder: '$(Agent.TempDirectory)'trigger:
+  paths:
+    include:
+    - libs/storage/Tsavorite/*
+ 
+variables:
+  solution: 'Garnet.sln'
+  RunAzureTests: 'yes'
+
+jobs:
+- job: 'csharpWindows'
+  pool:
+    vmImage: windows-latest
+  displayName: 'C# (Windows)'
+  timeoutInMinutes: 125
+
+  strategy:
+    maxParallel: 2
+    matrix:
+      AnyCPU-Debug:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Debug'
+      AnyCPU-Release:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Release'
+
+  steps:
+  - task: UseDotNet@2
+    displayName: Use .NET 8.0
+    inputs:
+      packageType: 'sdk'
+      version: '8.0.x'
+
+  - task: UseDotNet@2
+    displayName: Use .NET 9.0
+    inputs:
+      packageType: 'sdk'
+      version: '9.0.x'
+
+  - task: NodeTool@0
+    displayName: Node Tool
+    inputs:
+      versionSpec: 14.x
+
+  - script : npm install -g azurite
+    displayName: Install Azurite
+
+  - script : start /B azurite
+    displayName: Start Azurite
+
+  - task: NuGetAuthenticate@1
+    displayName: Nuget Authenticate
+
+  - task: NuGetToolInstaller@1
+    displayName: Nuget Tool Installer
+    inputs:
+      versionspec: '*'
+      checkLatest: true
+
+  - script: nuget restore
+    displayName: Nuget Restore
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build Tsavorite binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Tsavorite.test.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Tsavorite on $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Tsavorite.test.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build Garnet Cluster binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Garnet.test.cluster.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Garnet Cluster on $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Garnet.test.cluster.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build Garnet binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Garnet.test.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Garnet on $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Garnet.test.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+      
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    inputs:
+      testRunner: VSTest
+      testResultsFiles: '**/*.trx'
+      searchFolder: '$(Agent.TempDirectory)'
+
+- job: 'csharpLinux'
+  pool:
+    vmImage: ubuntu-latest
+  displayName: 'C# (Linux)'
+  timeoutInMinutes: 125
+
+  strategy:
+    maxParallel: 2
+    matrix:
+      AnyCPU-Debug:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Debug'
+      AnyCPU-Release:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Release'
+
+  steps:
+  - task: UseDotNet@2
+    displayName: Use .NET 8.0
+    inputs:
+      packageType: 'sdk'
+      version: '8.0.x'
+
+  - task: UseDotNet@2
+    displayName: Use .NET 9.0
+    inputs:
+      packageType: 'sdk'
+      version: '9.0.x'
+
+  - bash: |
+      sudo npm install -g azurite
+      sudo mkdir azurite
+      sudo azurite --silent --location azurite --debug azurite\debug.log &
+    displayName: 'Install and Run Azurite'
+      
+  - task: NuGetAuthenticate@1
+    displayName: Nuget Authenticate
+
+  - task: UseDotNet@2 # Optional if the .NET Core SDK is already installed
+    displayName: Use .NET
+
+  - script: dotnet restore
+    displayName: .NET Restore
+
+  - task: DotNetCoreCLI@2
+    displayName: '.NET Core build Tsavorite binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Tsavorite.test.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Tsavorite on $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Tsavorite.test.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+      
+  - task: DotNetCoreCLI@2
+    displayName: '.NET Core build Garnet binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Garnet.test.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Garnet $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Garnet.test.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+      publishTestResults: true
+      
+  - task: DotNetCoreCLI@2
+    displayName: '.NET Core build Cluster binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Garnet.test.cluster.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Garnet Cluster $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Garnet.test.cluster.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    inputs:
+      testResultsFormat: 'VSTest'
+      testResultsFiles: '*.trx'
+      searchFolder: '$(Agent.TempDirectory)'trigger:
+  paths:
+    include:
+    - libs/storage/Tsavorite/*
+ 
+variables:
+  solution: 'Garnet.sln'
+  RunAzureTests: 'yes'
+
+jobs:
+- job: 'csharpWindows'
+  pool:
+    vmImage: windows-latest
+  displayName: 'C# (Windows)'
+  timeoutInMinutes: 125
+
+  strategy:
+    maxParallel: 2
+    matrix:
+      AnyCPU-Debug:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Debug'
+      AnyCPU-Release:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Release'
+
+  steps:
+  - task: UseDotNet@2
+    displayName: Use .NET 8.0
+    inputs:
+      packageType: 'sdk'
+      version: '8.0.x'
+
+  - task: UseDotNet@2
+    displayName: Use .NET 9.0
+    inputs:
+      packageType: 'sdk'
+      version: '9.0.x'
+
+  - task: NodeTool@0
+    displayName: Node Tool
+    inputs:
+      versionSpec: 14.x
+
+  - script : npm install -g azurite
+    displayName: Install Azurite
+
+  - script : start /B azurite
+    displayName: Start Azurite
+
+  - task: NuGetAuthenticate@1
+    displayName: Nuget Authenticate
+
+  - task: NuGetToolInstaller@1
+    displayName: Nuget Tool Installer
+    inputs:
+      versionspec: '*'
+      checkLatest: true
+
+  - script: nuget restore
+    displayName: Nuget Restore
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build Tsavorite binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Tsavorite.test.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Tsavorite on $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Tsavorite.test.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build Garnet Cluster binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Garnet.test.cluster.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Garnet Cluster on $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Garnet.test.cluster.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build Garnet binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Garnet.test.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Garnet on $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Garnet.test.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+      
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    inputs:
+      testRunner: VSTest
+      testResultsFiles: '**/*.trx'
+      searchFolder: '$(Agent.TempDirectory)'
+
+- job: 'csharpLinux'
+  pool:
+    vmImage: ubuntu-latest
+  displayName: 'C# (Linux)'
+  timeoutInMinutes: 125
+
+  strategy:
+    maxParallel: 2
+    matrix:
+      AnyCPU-Debug:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Debug'
+      AnyCPU-Release:
+        buildPlatform: 'Any CPU'
+        buildConfiguration: 'Release'
+
+  steps:
+  - task: UseDotNet@2
+    displayName: Use .NET 8.0
+    inputs:
+      packageType: 'sdk'
+      version: '8.0.x'
+
+  - task: UseDotNet@2
+    displayName: Use .NET 9.0
+    inputs:
+      packageType: 'sdk'
+      version: '9.0.x'
+
+  - bash: |
+      sudo npm install -g azurite
+      sudo mkdir azurite
+      sudo azurite --silent --location azurite --debug azurite\debug.log &
+    displayName: 'Install and Run Azurite'
+      
+  - task: NuGetAuthenticate@1
+    displayName: Nuget Authenticate
+
+  - task: UseDotNet@2 # Optional if the .NET Core SDK is already installed
+    displayName: Use .NET
+
+  - script: dotnet restore
+    displayName: .NET Restore
+
+  - task: DotNetCoreCLI@2
+    displayName: '.NET Core build Tsavorite binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Tsavorite.test.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Tsavorite on $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Tsavorite.test.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+      
+  - task: DotNetCoreCLI@2
+    displayName: '.NET Core build Garnet binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Garnet.test.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Garnet $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Garnet.test.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+      publishTestResults: true
+    *0*  
+  - task: DotNetCoreCLI@2
+    displayName: '.NET Core build Cluster binaries and tests $(buildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/Garnet.test.cluster.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Tests for Garnet Cluster $(buildConfiguration)'
+    inputs:
+      command: test
+      projects: '**/Garnet.test.cluster.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:"console;verbosity=detailed"'
+
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    inputs:
+      testResultsFormat: 'VSTest'
+      testResultsFiles: '*.trx'
+      searchFolder: '$(Agent.TempDirectory)'microsoft/garnet/.azure/pipelines/azure-pipelines-tsavorite![1000069873](https://github.com/user-attachments/assets/a898099a-9bac-48f6-b127-ab4a4ec6eb47)
+
+%assignee:* %%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull request%%10+10%/pull requestults0009-0002-9655-9601727646495837                         > < [code-scanning-files-extracted (10).csv](https://github.com/user- 
+           attachments/files/19260077/code-scanning-files-extracted.10.csv) [GitHub ________Copilot Chat.log](https://github.com/user-____________attachments/files/19260078/GitHub.Copilot.Chat.log) [package-lock (2).json]__________(https://github.com/user-attachments/files/19260082/package-________lock.2.json) [jekyll-gh-pages.yml (1).txt](https://github.com/user-attachments/files/19260083/jekyll-gh-pages.yml.1.txt) [all-releases.md]_________(https://github.com/user-attachments/files/19260084/all-releases.md) [skills-code-with-codespaces-main (1).zip](https://github.com/user-attachments/files/19260086/skills-code-with-codespaces-main.1.zip) [eslintignore.txt]_________(https://github.com/user-attachments/files/19260087/eslintignore.txt) [package.json]__________(https://github.com/user-attachments/files/19260088/package.json)
+
+  // -https://docs.github.com/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets
